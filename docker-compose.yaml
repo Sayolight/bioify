@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  webapp:
+    image: node:18
+    container_name: bioify-webapp
+    working_dir: /app
+    volumes:
+      - ./webapp:/app
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - 5173:5173
+    environment:
+      - NODE_ENV=development
+
+  bot:
+    build:
+      context: ./bot
+      dockerfile: ./Dockerfile
+    container_name: bioify-bot
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      DB_URL: mysql://bioify_dev:onetimepassword@db:3306/bioify
+    working_dir: /app
+    volumes:
+      - ./bot:/app
+    command: npm run dev
+    ports:
+      - 3000:3000
+    depends_on:
+      - db
+
+  db:
+    image: mysql:5.7
+    container_name: bioify-db
+    environment:
+      MYSQL_DATABASE: bioify
+      MYSQL_USER: bioify_dev
+      MYSQL_PASSWORD: onetimepassword
+      MYSQL_ROOT_PASSWORD: twotimespassword
+    volumes:
+      - db_data:/var/lib/mysql
+    expose:
+      - 3306
+
+  nginx:
+    image: nginx:latest
+    container_name: bioify-nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - 80:80
+    depends_on:
+      - webapp
+      - bot
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: bioify-ngrok
+    # command: ngrok http nginx:80 --url ${NGROK_DOMAIN}
+    command:
+      - "http"
+      - "nginx:80"
+      - "--url"
+      - ${NGROK_DOMAIN}
+    ports:
+      - 4040:4040
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_TOKEN}
+    depends_on:
+      - nginx
+
+volumes:
+  db_data:

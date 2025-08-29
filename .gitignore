@@ -1,0 +1,8 @@
+/webapp/node_modules/
+/webapp/.next/
+/webapp/out/
+
+/bot/node_modules/
+/bot/dist/
+
+.env
